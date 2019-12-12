@@ -2,6 +2,9 @@
   "type": "object",
   "title": "Configuration",
   "required": [
+    "#api_secret",
+    "api_client_id",
+    "result_file_name",
     "filter",
     "dimensions",
     "metrics"

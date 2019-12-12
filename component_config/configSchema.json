@@ -5,6 +5,7 @@
     "#api_secret",
     "api_client_id",
     "result_file_name",
+    "incremental_output",
     "filter",
     "dimensions",
     "metrics"
@@ -27,6 +28,23 @@
         "description": "Result storage table name",
         "default": "report-data",
       "propertyOrder": 3
+    },
+     "incremental_output": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "options": {
+        "enum_titles": [
+          "Full Load",
+          "Incremental Update"
+        ]
+      },
+      "default": 1,
+      "title": "Load type",
+      "description": "If set to Incremental update, the result tables will be updated based on primary key consisting of all selected dimensions. Full load overwrites the destination table each time, with no primary keys.",
+      "propertyOrder": 4
     },
     "filter": {
       "type": "object",

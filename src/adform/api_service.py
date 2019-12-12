@@ -92,7 +92,8 @@ class AdformClient(HttpClientBase):
              "client": {
              "id": [12, 13, 14]
              }}
-         [12, 13] // OR condition is applied within the same filter condition values, either data for client name_12 or name_13 will be reported.
+         [12, 13] // OR condition is applied within the same filter condition values, either data for client name_12
+         or name_13 will be reported.
 
         :param dimensions: an array
          [

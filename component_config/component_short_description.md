@@ -1,1 +1,1 @@
-Testing functional sample extractor for purposes of the python component template. 
+The display advertising tools allow you to identify, track and engage with your audience across a wide range of channels.

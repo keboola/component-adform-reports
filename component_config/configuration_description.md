@@ -1,1 +1,2 @@
-Testing configuration description.
+**NOTE**: Updating an existing configuration may lead to different result structure which might cause 
+Storage import to fail. It is recommended to drop existing tables after changing the report parameters.

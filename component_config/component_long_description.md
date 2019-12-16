@@ -1,2 +1,2 @@
-Testing functional sample extractor for purposes of the python component template. 
-Implements partial Hubspot extractor using the public sandbox token.
+The display advertising tools allow you to identify, track and engage with your audience across a wide range of channels. 
+Retrieve Buy-Side report data from the Reporting Stats API. Reporting Stats API returns report data consisting of statistics derived from the data collected by the Adform tracking code.

@@ -45,6 +45,18 @@ Optional list of client IDs to retrieve. If left empty, data for all available c
 
 List of report dimensions. 
 
+<details><summary>CLICK ME</summary>
+<p>
+
+#### yes, even hidden code blocks!
+
+```python
+print("hello world!")
+```
+
+</p>
+</details>
+
 **Available dimensions**:
 ```json
 [

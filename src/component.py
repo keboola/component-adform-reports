@@ -104,7 +104,7 @@ class Component(KBCEnvHandler):
         result_file_name = params[KEY_RESULT_FILE]
         for r in self.client.get_report_data_paginated(filter_def, dimensions, metric_defs):
             logging.info('Storing results')
-            self.store_results(r, report_name=result_file_name, incremental=params.get('incremental_output', True))
+            self.store_results(r, report_name=result_file_name, incremental=params.get('incremental_output', True), pkey=dimensions)
 
         logging.info('Extraction finished successfully!')
 
@@ -138,7 +138,7 @@ class Component(KBCEnvHandler):
             filter_def['client'] = {"id": client_ids}
         return filter_def
 
-    def store_results(self, report_result, incremental=True, report_name='result_data'):
+    def store_results(self, report_result, incremental=True, report_name='result_data', pkey=[]):
 
         file_name = report_name + '.csv'
         res_file_path = os.path.join(self.tables_out_path, file_name)
@@ -155,7 +155,7 @@ class Component(KBCEnvHandler):
             # write data
             writer.writerows(report_result['reportData']['rows'])
 
-        table_def = KBCTableDef(file_name, [], columns)
+        table_def = KBCTableDef(file_name, [], pkey)
         result = KBCResult(file_name, res_file_path, table_def)
         self.create_manifests([result], incremental=incremental)
 

@@ -43,15 +43,16 @@ Optional list of client IDs to retrieve. If left empty, data for all available c
 
 ## Dimensions
 
-List of report dimensions. For full list of dimensions and its' description refer [here](docs/available_dimensions.md)
+List of report dimensions. For full list of dimensions and its' description [refer here](docs/available_dimensions.md)
 
-## Source table
-The table you wish to snapshot.
-   
-- `ID`-  e.g. "out.c-test_snapshot.out_table" - full ID of the source table that you want to snapshot
-- `Primary Key` - Comma separated list primary key columns of the source table
-- `Monitored parameters` - Comma separated list of columns that will be "monitored". This means that these columns 
-will be checked for changes and a new (SCD2) snapshot will be created whenever a change is recognized.
+## Metrics
+
+List of report metrics. Max 10. Note that some combinations of metrics and/or dimensions are not supported.
+
+Each metric definition consists of a **metric name** and additional filtering possibilities (`Specs Metadata`) for individual metric. 
+If no value is specified in the `Specs Metadata` the default metric is used.
+
+For a full list of available metrics and specs [see here](docs/available_metrics.md)
 
  
 ## Development

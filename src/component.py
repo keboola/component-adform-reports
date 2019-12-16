@@ -104,7 +104,8 @@ class Component(KBCEnvHandler):
         result_file_name = params[KEY_RESULT_FILE]
         for r in self.client.get_report_data_paginated(filter_def, dimensions, metric_defs):
             logging.info('Storing results')
-            self.store_results(r, report_name=result_file_name, incremental=params.get('incremental_output', True), pkey=dimensions)
+            self.store_results(r, report_name=result_file_name, incremental=params.get('incremental_output', True),
+                               pkey=dimensions)
 
         logging.info('Extraction finished successfully!')
 

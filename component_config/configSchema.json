@@ -76,7 +76,7 @@
             },
             "to_date": {
               "type": "string",
-              "title": "To date [excluding]",
+              "title": "To date [including]",
               "default": "today",
               "description": "Date in YYYY-MM-DD format or dateparser string i.e. 5 days ago, 1 month ago, yesterday, etc.",
               "propertyOrder": 350

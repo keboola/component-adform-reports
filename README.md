@@ -52,7 +52,7 @@ List of report metrics. Max 10. Note that some combinations of metrics and/or di
 Each metric definition consists of a **metric name** and additional filtering possibilities (`Specs Metadata`) for individual metric. 
 If no value is specified in the `Specs Metadata` the default metric is used.
 
-For a full list of available metrics and specs [see here](docs/available_metrics.md)
+For a full list of available metrics and specs [see here](https://bitbucket.org/kds_consulting_team/kds-team.ex-adform-reports/raw/a5e14ac3450e4e1ab5b3cdb061493e2d5078108f/docs/available_metrics.md)
 
  
 ## Development

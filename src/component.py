@@ -72,15 +72,18 @@ class Component(KBCEnvHandler):
             exit(1)
 
         # intialize instance parameteres
-        if self.cfg_params[KEY_API_TOKEN]:
-            # legacy client credential flow support
-            self.client = AdformClient('')
-            self.client.login_using_client_credentials(self.cfg_params[KEY_API_CLIENT_ID],
-                                                       self.cfg_params[KEY_API_TOKEN])
-        else:
-            # oauth
-            auth = json.loads(self.get_authorization()['#data'])
-            self.client = AdformClient(auth.get('access_token'))
+        try:
+            if self.cfg_params[KEY_API_TOKEN]:
+                # legacy client credential flow support
+                self.client = AdformClient('')
+                self.client.login_using_client_credentials(self.cfg_params[KEY_API_CLIENT_ID],
+                                                           self.cfg_params[KEY_API_TOKEN])
+            else:
+                # oauth
+                auth = json.loads(self.get_authorization()['#data'])
+                self.client = AdformClient(auth.get('access_token'))
+        except Exception as ex:
+            raise RuntimeError(f'Login failed, please check your credentials! {str(ex)}')
 
     def run(self):
         '''

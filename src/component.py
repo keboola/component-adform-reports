@@ -36,9 +36,6 @@ KEY_VALUE = 'value'
 # #### Keep for debug
 KEY_DEBUG = 'debug'
 MANDATORY_PARS = [KEY_FILTER, KEY_DIMENSIONS, KEY_METRICS, KEY_RESULT_FILE]
-MANDATORY_IMAGE_PARS = []
-
-APP_VERSION = '0.0.1'
 
 
 class Component(KBCEnvHandler):
@@ -55,11 +52,10 @@ class Component(KBCEnvHandler):
             self.set_gelf_logger(log_level)
         else:
             self.set_default_logger(log_level)
-        logging.info('Running version %s', APP_VERSION)
         logging.info('Loading configuration...')
 
         try:
-            self.validate_config()
+            self.validate_config(MANDATORY_PARS)
             self.validate_parameters(self.cfg_params[KEY_FILTER],
                                      [KEY_DATE_RANGE], KEY_FILTER)
             self.validate_parameters(self.cfg_params[KEY_FILTER].get(KEY_DATE_RANGE, []),

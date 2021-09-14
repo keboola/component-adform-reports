@@ -72,8 +72,8 @@ class Component(KBCEnvHandler):
             if self.cfg_params[KEY_API_TOKEN]:
                 # legacy client credential flow support
                 self.client = AdformClient('')
-                self.client.login_using_client_credentials(self.cfg_params[KEY_API_CLIENT_ID],
-                                                           self.cfg_params[KEY_API_TOKEN])
+                # self.client.login_using_client_credentials(self.cfg_params[KEY_API_CLIENT_ID],
+                #                                            self.cfg_params[KEY_API_TOKEN])
             else:
                 # oauth
                 auth = json.loads(self.get_authorization()['#data'])
@@ -89,12 +89,15 @@ class Component(KBCEnvHandler):
 
         logging.info('Building report request..')
         dimensions = params.get(KEY_DIMENSIONS)
-
+        logging.info('Building metrics..')
         metric_defs = self.build_metrics(params.get(KEY_METRICS))
         filters = params[KEY_FILTER]
         date_range = filters[KEY_DATE_RANGE]
+
+        logging.info('Getting report period..')
         start_date, end_date = self.get_date_period_converted(date_range[KEY_DATE_FROM], date_range[KEY_DATE_TO])
 
+        logging.info('Constructing filter..')
         filter_def = self.build_fiter_def(start_date, end_date, filters.get(KEY_CLIENT_IDS))
         logging.info(f'Submitting report with parameters: filter: {params[KEY_FILTER]}, '
                      f'dimensions={dimensions}, metrics:{params.get(KEY_METRICS)}')

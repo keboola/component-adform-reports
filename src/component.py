@@ -72,8 +72,8 @@ class Component(KBCEnvHandler):
             if self.cfg_params[KEY_API_TOKEN]:
                 # legacy client credential flow support
                 self.client = AdformClient('')
-                # self.client.login_using_client_credentials(self.cfg_params[KEY_API_CLIENT_ID],
-                #                                            self.cfg_params[KEY_API_TOKEN])
+                self.client.login_using_client_credentials(self.cfg_params[KEY_API_CLIENT_ID],
+                                                           self.cfg_params[KEY_API_TOKEN])
             else:
                 # oauth
                 auth = json.loads(self.get_authorization()['#data'])

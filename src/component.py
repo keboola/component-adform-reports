@@ -1,18 +1,21 @@
-'''
-Template Component main class.
-
-'''
-
 import csv
-import json
 import logging
 import os
-import sys
+import dateparser
+import warnings
+from datetime import datetime
+from typing import Dict, Tuple, List, Optional
 
-from kbc.env_handler import KBCEnvHandler
-from kbc.result import KBCTableDef, KBCResult
+from keboola.component.base import ComponentBase
+from keboola.component.exceptions import UserException
 
 from adform.api_service import AdformClient
+
+# Ignore dateparser warnings regarding pytz
+warnings.filterwarnings(
+    "ignore",
+    message="The localize method is no longer necessary, as this time zone supports the fold attribute",
+)
 
 # configuration variables
 KEY_API_TOKEN = '#api_secret'
@@ -28,154 +31,142 @@ KEY_CLIENT_IDS = 'client_ids'
 KEY_DIMENSIONS = 'dimensions'
 
 KEY_METRICS = 'metrics'
-KEY_METRIC = 'metric'
-KEY_SPEC_DATA = 'specs_metadata'
-KEY_KEY = 'key'
-KEY_VALUE = 'value'
+KEY_METRIC_NAME = 'metric'
+KEY_METRIC_SPEC = 'specs_metadata'
+KEY_METRIC_SPEC_KEY = 'key'
+KEY_METRIC_SPEC_VALUE = 'value'
 
-# #### Keep for debug
-KEY_DEBUG = 'debug'
-MANDATORY_PARS = [KEY_FILTER, KEY_DIMENSIONS, KEY_METRICS, KEY_RESULT_FILE]
-MANDATORY_IMAGE_PARS = []
-
-APP_VERSION = '0.0.1'
+REQUIRED_PARAMETERS = [KEY_FILTER, KEY_DIMENSIONS, KEY_METRICS, KEY_RESULT_FILE]
+REQUIRED_IMAGE_PARS = []
 
 
-class Component(KBCEnvHandler):
+class Component(ComponentBase):
 
-    def __init__(self, debug=False):
-        KBCEnvHandler.__init__(self, MANDATORY_PARS, )
-        # override debug from config
-        if self.cfg_params.get(KEY_DEBUG):
-            debug = True
+    def __init__(self):
+        super().__init__()
+        self.validate_configuration_parameters(REQUIRED_PARAMETERS)
+        self.validate_image_parameters(REQUIRED_IMAGE_PARS)
 
-        log_level = logging.DEBUG if debug else logging.INFO
-        # setup GELF if available
-        if os.getenv('KBC_LOGGER_ADDR', None):
-            self.set_gelf_logger(log_level)
-        else:
-            self.set_default_logger(log_level)
-        logging.info('Running version %s', APP_VERSION)
-        logging.info('Loading configuration...')
+    def run(self) -> None:
+        params = self.configuration.parameters
 
-        try:
-            self.validate_config()
-            self.validate_parameters(self.cfg_params[KEY_FILTER],
-                                     [KEY_DATE_RANGE], KEY_FILTER)
-            self.validate_parameters(self.cfg_params[KEY_FILTER].get(KEY_DATE_RANGE, []),
-                                     [KEY_DATE_FROM, KEY_DATE_TO],
-                                     KEY_DATE_RANGE)
-            for m in self.cfg_params[KEY_METRICS]:
-                self.validate_parameters(m, [KEY_METRIC], KEY_METRICS)
-        except ValueError as e:
-            logging.exception(e)
-            exit(1)
-
-        # intialize instance parameteres
-        try:
-            if self.cfg_params[KEY_API_TOKEN]:
-                # legacy client credential flow support
-                self.client = AdformClient('')
-                self.client.login_using_client_credentials(self.cfg_params[KEY_API_CLIENT_ID],
-                                                           self.cfg_params[KEY_API_TOKEN])
-            else:
-                # oauth
-                auth = json.loads(self.get_authorization()['#data'])
-                self.client = AdformClient(auth.get('access_token'))
-        except Exception as ex:
-            raise RuntimeError(f'Login failed, please check your credentials! {str(ex)}')
-
-    def run(self):
-        '''
-        Main execution code
-        '''
-        params = self.cfg_params  # noqa
+        client = self.init_client()
 
         logging.info('Building report request..')
         dimensions = params.get(KEY_DIMENSIONS)
-
-        metric_defs = self.build_metrics(params.get(KEY_METRICS))
+        logging.info('Building metrics..')
+        metric_definitions = build_metrics(params.get(KEY_METRICS))
         filters = params[KEY_FILTER]
         date_range = filters[KEY_DATE_RANGE]
-        start_date, end_date = self.get_date_period_converted(date_range[KEY_DATE_FROM], date_range[KEY_DATE_TO])
 
-        filter_def = self.build_fiter_def(start_date, end_date, filters.get(KEY_CLIENT_IDS))
+        logging.info('Getting report period..')
+        start_date, end_date = get_date_period_converted(date_range[KEY_DATE_FROM], date_range[KEY_DATE_TO])
+
+        logging.info('Constructing filter..')
+        filter_def = build_filter_def(start_date, end_date, filters.get(KEY_CLIENT_IDS))
         logging.info(f'Submitting report with parameters: filter: {params[KEY_FILTER]}, '
-                     f'dimensions={dimensions}, metrics:{params.get(KEY_METRICS)}')
+                     f'dimensions={dimensions}, metrics:{metric_definitions}')
         logging.info('Collecting report result..')
 
         result_file_name = params[KEY_RESULT_FILE]
-        for r in self.client.get_report_data_paginated(filter_def, dimensions, metric_defs):
-            logging.info('Storing results')
-            self.store_results(r, report_name=result_file_name, incremental=params.get('incremental_output', True),
-                               pkey=dimensions)
+        incremental = params.get('incremental_output', True)
+        table_def = self.create_out_table_definition(result_file_name, primary_key=dimensions, incremental=incremental)
+        for res in client.get_report_data_paginated(filter_def, dimensions, metric_definitions):
+            logging.info('Storing paginated results')
+            self.store_results(res, table_def.full_path)
+        self.write_manifest(table_def)
 
         logging.info('Extraction finished successfully!')
 
-    def build_metrics(self, metrics_cfg):
-        metric_defs = []
-        for m in metrics_cfg:
-            metric_def = {"metric": m[KEY_METRIC],
-                          "specs": self.build_specs(m[KEY_SPEC_DATA])}
-            metric_defs.append(metric_def)
-        return metric_defs
-
-    def build_specs(self, spec_metadata):
-        spec_def = dict()
-        for s in spec_metadata:
-            spec_def[s[KEY_KEY]] = s[KEY_VALUE]
-            return spec_def
-
-    def build_fiter_def(self, start_date, end_date, client_ids):
-        """ {
-                "date": {
-                  "from": "2019-12-11T08:38:24.6963524Z",
-                  "to": "2019-12-11T08:38:24.6963524Z"
-                },
-             "client": {
-             "id": [12, 13, 14]
-             }}"""
-        filter_def = dict()
-        filter_def['date'] = {"from": start_date.strftime('%Y-%m-%d'),
-                              "to": end_date.strftime('%Y-%m-%d')}
-        if client_ids:
-            filter_def['client'] = {"id": client_ids}
-        return filter_def
-
-    def store_results(self, report_result, incremental=True, report_name='result_data', pkey=[]):
-
-        file_name = report_name + '.csv'
-        res_file_path = os.path.join(self.tables_out_path, file_name)
-        if os.path.exists(res_file_path):
-            mode = 'a'
-        else:
-            mode = 'w+'
+    @staticmethod
+    def store_results(report_result: Dict, file_path: str) -> None:
+        mode = 'a' if os.path.exists(file_path) else 'w+'
         columns = report_result['reportData']['columnHeaders']
-        with open(res_file_path, mode, newline='', encoding='utf-8') as out:
+        with open(file_path, mode, newline='', encoding='utf-8') as out:
             writer = csv.writer(out)
-            # write header
             if mode == 'w+':
                 writer.writerow(columns)
-            # write data
             writer.writerows(report_result['reportData']['rows'])
 
-        table_def = KBCTableDef(file_name, [], pkey)
-        result = KBCResult(file_name, res_file_path, table_def)
-        self.create_manifests([result], incremental=incremental)
+    @staticmethod
+    def init_client_with_api_token(api_token: str, api_client_id: str) -> AdformClient:
+        try:
+            client = AdformClient('')
+            client.login_using_client_credentials(api_client_id, api_token)
+        except Exception as ex:
+            raise UserException(f'Login failed, please check your credentials! {str(ex)}') from ex
+
+        return client
+
+    @staticmethod
+    def init_client_with_access_token(access_token: str) -> AdformClient:
+        try:
+            client = AdformClient(access_token)
+        except Exception as ex:
+            raise UserException(f'Login failed, please check your credentials! {str(ex)}') from ex
+
+        return client
+
+    def init_client(self) -> AdformClient:
+        params = self.configuration.parameters
+        api_token = params.get(KEY_API_TOKEN)
+        api_client_id = params.get(KEY_API_CLIENT_ID)
+        if api_token and api_client_id:
+            return self.init_client_with_api_token(api_token, api_client_id)
+        auth = self.configuration.oauth_credentials.data
+        access_token = auth.get('access_token')
+        return self.init_client_with_access_token(access_token)
 
 
-"""
-    Main entrypoint
-"""
+def build_metrics(metrics_cfg: List[Dict]) -> List[Dict]:
+    metric_definitions = []
+    for m in metrics_cfg:
+        metric_def = {"metric": m[KEY_METRIC_NAME],
+                      "specs": build_specs(m[KEY_METRIC_SPEC])}
+        metric_definitions.append(metric_def)
+    return metric_definitions
+
+
+def build_specs(spec_metadata: List[Dict]) -> Dict:
+    return {s[KEY_METRIC_SPEC_KEY]: s[KEY_METRIC_SPEC_VALUE] for s in spec_metadata}
+
+
+def build_filter_def(start_date: datetime, end_date: datetime, client_ids: Optional[List]) -> Dict:
+    filter_def = {'date': {"from": start_date.strftime('%Y-%m-%d'), "to": end_date.strftime('%Y-%m-%d')}}
+    if client_ids:
+        filter_def['client'] = {"id": client_ids}
+    return filter_def
+
+
+def get_date_period_converted(period_from: str, period_to: str) -> Tuple[datetime, datetime]:
+    """
+    Returns given period parameters in datetime format, or next step in back-fill mode
+    along with generated last state for next iteration.
+
+    :param period_from: str YYYY-MM-DD or relative string supported by date parser e.g. 5 days ago
+    :param period_to: str YYYY-MM-DD or relative string supported by date parser e.g. 5 days ago
+
+    :return: start_date: datetime, end_date: datetime
+    """
+
+    start_date_form = dateparser.parse(period_from)
+    end_date_form = dateparser.parse(period_to)
+    if not start_date_form or not end_date_form:
+        raise UserException("Error with dates, make sure both start and end date are defined properly")
+    day_diff = (end_date_form - start_date_form).days
+    if day_diff < 0:
+        raise UserException("start_date cannot exceed end_date.")
+
+    return start_date_form, end_date_form
+
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        debug = sys.argv[1]
-    else:
-        debug = False
     try:
-        comp = Component(debug)
+        comp = Component()
         comp.run()
-    except Exception as e:
-        logging.exception(e)
+    except UserException as exc:
+        logging.exception(exc)
         exit(1)
+    except Exception as exc:
+        logging.exception(exc)
+        exit(2)

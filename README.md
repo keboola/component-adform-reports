@@ -1,7 +1,7 @@
 # Adform Reports extractor
 
-Retrieve Buy-Side report data from the Reporting Stats API.
-
+Retrieve Buy-Side report data from the [Reporting Stats API](https://api.adform.com/help/guides/how-to-report-on-campaigns/reporting-stats).
+    
 Reporting Stats API returns report data consisting of statistics derived from the data collected by the Adform tracking code. 
 Each report is organized as dimensions and metrics. Metrics are the individual measurements of user activity on your property, 
 such as impressions, clicks and conversions. Dimensions break down metrics across some common criteria, 
@@ -13,11 +13,26 @@ and metrics you want in your report data.
   
 [TOC]
 
+# Prerequisites
+
+To use this extractor the user is required to register a client application using the `Credentials flow` authentication. 
+
+To register the application follow the steps described in the [official documentation](https://api.adform.com/help/guides/getting-started/authorization-guide#prerequisites):
+
+Contact Adform API support (technical@adform.com) and provide the **following information**:
+
+- short description of your application (Adform's API use case): `Retrieve Buy-Side report data from the Reporting Stats API`
+- authorization flow: `client credentials`
+- a list of needed scopes for application: `https://api.adform.com/scope/buyer.stats`
+
+You will then receive your `client secret` and `client id` that will be used for the authentication.
+
+
 # Configuration
 
 ## Authorization
 
-- **API client secret**, **API client ID** - Adform client credentials for registered app with `Credentials flow` enabled.
+- **API client secret**, **API client ID** - Adform client credentials for registered app with the `Client credentials flow` enabled.
 
 ## Result table name
 
@@ -43,7 +58,8 @@ Optional list of client IDs to retrieve. If left empty, data for all available c
 
 ## Dimensions
 
-List of report dimensions. For full list of dimensions and its' description [refer here](docs/available_dimensions.md)
+List of report dimensions. For full list of dimensions and its' description [refer here](docs/available_dimensions.md). 
+Or can be retrieved using this [API call](https://api.adform.com/help/references/buyer-solutions/reporting/metadata/dimensions) 
 
 ## Metrics
 
@@ -53,7 +69,7 @@ Each metric definition consists of a **metric name** and additional filtering po
 If no value is specified in the `Specs Metadata` the default metric is used.
 
 For a full list of available metrics and specs [see here](https://bitbucket.org/kds_consulting_team/kds-team.ex-adform-reports/raw/a5e14ac3450e4e1ab5b3cdb061493e2d5078108f/docs/available_metrics.md)
-
+Or can be retrieved using thi [API call](https://api.adform.com/help/guides/how-to-report-on-campaigns/reporting-stats/metrics)
  
 ## Development
  

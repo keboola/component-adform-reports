@@ -10,6 +10,7 @@ from keboola.component.base import ComponentBase
 from keboola.component.exceptions import UserException
 
 from adform.api_service import AdformClient
+from adform.api_service import AdformClientError
 
 # Ignore dateparser warnings regarding pytz
 warnings.filterwarnings(
@@ -71,9 +72,12 @@ class Component(ComponentBase):
         result_file_name = params[KEY_RESULT_FILE]
         incremental = params.get('incremental_output', True)
         table_def = self.create_out_table_definition(result_file_name, primary_key=dimensions, incremental=incremental)
-        for res in client.get_report_data_paginated(filter_def, dimensions, metric_definitions):
-            logging.info('Storing paginated results')
-            self.store_results(res, table_def.full_path)
+        try:
+            for res in client.get_report_data_paginated(filter_def, dimensions, metric_definitions):
+                logging.info('Storing paginated results')
+                self.store_results(res, table_def.full_path)
+        except AdformClientError as client_exception:
+            raise UserException(client_exception) from client_exception
         self.write_manifest(table_def)
 
         logging.info('Extraction finished successfully!')

@@ -1,6 +1,8 @@
 import time
 import logging
 from typing import Dict, List, Optional, Tuple, Generator
+
+import requests.exceptions
 from keboola.http_client import HttpClient
 
 BASE_URL = 'https://api.adform.com'
@@ -11,13 +13,17 @@ END_BUYER_STATS = 'v1/buyer/stats/data'
 END_BUYER_STATS_OPERATION = "v1/buyer/stats/operations/"
 
 DEFAULT_PAGING_LIMIT = 100000
-MAX_RETRIES = 10
+MAX_RETRIES = 6
 
 # wait between polls (s)
 DEFAULT_WAIT_INTERVAL = 2
 
 
 class AdformClientError(Exception):
+    pass
+
+
+class AdformServerError(Exception):
     pass
 
 
@@ -33,7 +39,7 @@ class AdformClient(HttpClient):
     def __init__(self, token):
         super().__init__(BASE_URL,
                          max_retries=MAX_RETRIES,
-                         backoff_factor=0.3,
+                         backoff_factor=2,
                          status_forcelist=(429, 500, 502, 504),
                          auth_header={"Authorization": f'Bearer {str(token)}'})
 
@@ -54,7 +60,10 @@ class AdformClient(HttpClient):
         body = dict(dimensions=dimensions, filter=request_filter, metrics=metrics)
         if paging:
             body['paging'] = paging
-        response = self.post_raw(endpoint_path=END_BUYER_STATS, json=body)
+        try:
+            response = self.post_raw(endpoint_path=END_BUYER_STATS, json=body)
+        except requests.exceptions.RetryError as e:
+            raise AdformServerError(f"Client is unable to fetch data from server: {e}") from e
         if response.status_code > 299:
             raise AdformClientError(
                 f"Failed to submit report. Operation failed with code {response.status_code}. Reason: {response.text}")

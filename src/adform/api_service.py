@@ -16,7 +16,7 @@ DEFAULT_PAGING_LIMIT = 100000
 MAX_RETRIES = 6
 
 # wait between polls (s)
-DEFAULT_WAIT_INTERVAL = 2
+DEFAULT_WAIT_INTERVAL = 4
 
 
 class AdformClientError(Exception):
@@ -62,6 +62,8 @@ class AdformClient(HttpClient):
             body['paging'] = paging
         try:
             response = self.post_raw(endpoint_path=END_BUYER_STATS, json=body)
+            logging.info(response.headers)
+            logging.info(response.status_code)
         except requests.exceptions.RetryError as e:
             raise AdformServerError(f"Client is unable to fetch data from server: {e}") from e
         if response.status_code > 299:

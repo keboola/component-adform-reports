@@ -40,7 +40,7 @@ class AdformClient(HttpClient):
         super().__init__(BASE_URL,
                          max_retries=MAX_RETRIES,
                          backoff_factor=2,
-                         status_forcelist=(429, 500, 502, 504),
+                         status_forcelist=(500, 502, 504),
                          auth_header={"Authorization": f'Bearer {str(token)}'})
 
     def login_using_client_credentials(self,

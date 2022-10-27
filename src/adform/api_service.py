@@ -1,9 +1,9 @@
 import time
 import logging
 from typing import Dict, List, Optional, Tuple, Generator
-
-import requests.exceptions
 from keboola.http_client import HttpClient
+from requests.exceptions import RetryError
+from keboola.component.exceptions import UserException
 
 BASE_URL = 'https://api.adform.com'
 LOGIN_URL = 'https://id.adform.com/sts/connect/token'
@@ -12,8 +12,8 @@ LOGIN_URL = 'https://id.adform.com/sts/connect/token'
 END_BUYER_STATS = 'v1/buyer/stats/data'
 END_BUYER_STATS_OPERATION = "v1/buyer/stats/operations/"
 
-DEFAULT_PAGING_LIMIT = 100
-MAX_RETRIES = 6
+DEFAULT_PAGING_LIMIT = 100000
+MAX_RETRIES = 10
 
 # wait between polls (s)
 DEFAULT_WAIT_INTERVAL = 2
@@ -22,10 +22,8 @@ DEFAULT_WAIT_INTERVAL = 2
 class AdformClientError(Exception):
     pass
 
-
 class AdformServerError(Exception):
     pass
-
 
 class AdformClient(HttpClient):
     """
@@ -39,8 +37,8 @@ class AdformClient(HttpClient):
     def __init__(self, token):
         super().__init__(BASE_URL,
                          max_retries=MAX_RETRIES,
-                         backoff_factor=2,
-                         status_forcelist=(500, 502, 504),
+                         backoff_factor=0.3,
+                         status_forcelist=(429, 500, 502, 504),
                          auth_header={"Authorization": f'Bearer {str(token)}'})
 
     def login_using_client_credentials(self,
@@ -62,8 +60,9 @@ class AdformClient(HttpClient):
             body['paging'] = paging
         try:
             response = self.post_raw(endpoint_path=END_BUYER_STATS, json=body)
-        except requests.exceptions.RetryError as e:
-            raise AdformServerError(f"Client is unable to fetch data from server: {e}") from e
+        except RetryError as e:
+            raise AdformServerError(f"Client is unable to fetch data from server, "
+                                    f"please check your AdForm API quota limits, error: {e}") from e
         if response.status_code > 299:
             raise AdformClientError(
                 f"Failed to submit report. Operation failed with code {response.status_code}. Reason: {response.text}")
@@ -124,7 +123,7 @@ class AdformClient(HttpClient):
         while has_more:
             paging = {"offset": offset, "limit": DEFAULT_PAGING_LIMIT}
             operation_id, report_location_id = self._submit_stats_report(request_filter, dimensions, metrics, paging)
-            logging.info(f"operation_id  : {operation_id}")
+            logging.debug(f"operation_id  : {operation_id}")
             self._wait_until_operation_finished(operation_id)
             res = self._get_report_result(report_location_id)
             if len(res.get('reportData')['rows']) > 0:

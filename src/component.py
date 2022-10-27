@@ -10,7 +10,7 @@ from keboola.component.base import ComponentBase
 from keboola.component.exceptions import UserException
 
 from adform.api_service import AdformClient
-from adform.api_service import AdformClientError
+from adform.api_service import AdformClientError, AdformServerError
 
 # Ignore dateparser warnings regarding pytz
 warnings.filterwarnings(
@@ -78,6 +78,8 @@ class Component(ComponentBase):
                 self.store_results(res, table_def.full_path)
         except AdformClientError as client_exception:
             raise UserException(client_exception) from client_exception
+        except AdformServerError as server_exception:
+            raise UserException(server_exception) from server_exception
         self.write_manifest(table_def)
 
         logging.info('Extraction finished successfully!')

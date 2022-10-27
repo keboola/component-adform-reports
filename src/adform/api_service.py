@@ -21,8 +21,10 @@ DEFAULT_WAIT_INTERVAL = 2
 class AdformClientError(Exception):
     pass
 
+
 class AdformServerError(Exception):
     pass
+
 
 class AdformClient(HttpClient):
     """

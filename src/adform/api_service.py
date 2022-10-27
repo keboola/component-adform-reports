@@ -3,7 +3,6 @@ import logging
 from typing import Dict, List, Optional, Tuple, Generator
 from keboola.http_client import HttpClient
 from requests.exceptions import RetryError
-from keboola.component.exceptions import UserException
 
 BASE_URL = 'https://api.adform.com'
 LOGIN_URL = 'https://id.adform.com/sts/connect/token'

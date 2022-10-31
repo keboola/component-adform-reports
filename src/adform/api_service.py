@@ -2,6 +2,7 @@ import time
 import logging
 from typing import Dict, List, Optional, Tuple, Generator
 from keboola.http_client import HttpClient
+from requests.exceptions import RetryError
 
 BASE_URL = 'https://api.adform.com'
 LOGIN_URL = 'https://id.adform.com/sts/connect/token'
@@ -18,6 +19,10 @@ DEFAULT_WAIT_INTERVAL = 2
 
 
 class AdformClientError(Exception):
+    pass
+
+
+class AdformServerError(Exception):
     pass
 
 
@@ -54,7 +59,11 @@ class AdformClient(HttpClient):
         body = dict(dimensions=dimensions, filter=request_filter, metrics=metrics)
         if paging:
             body['paging'] = paging
-        response = self.post_raw(endpoint_path=END_BUYER_STATS, json=body)
+        try:
+            response = self.post_raw(endpoint_path=END_BUYER_STATS, json=body)
+        except RetryError as e:
+            raise AdformServerError(f"Client is unable to fetch data from server, "
+                                    f"please check your AdForm API quota limits, error: {e}") from e
         if response.status_code > 299:
             raise AdformClientError(
                 f"Failed to submit report. Operation failed with code {response.status_code}. Reason: {response.text}")

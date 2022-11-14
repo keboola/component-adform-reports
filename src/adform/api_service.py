@@ -63,7 +63,8 @@ class AdformClient(HttpClient):
             response = self.post_raw(endpoint_path=END_BUYER_STATS, json=body)
         except RetryError as e:
             raise AdformServerError(f"Client is unable to fetch data from server, "
-                                    f"please check your AdForm API quota limits, error: {e}") from e
+                                    f"please check your AdForm API quota limits in case of error #429"
+                                    f" the maximum allowed number of requests has been reached, error: {e}") from e
         if response.status_code > 299:
             raise AdformClientError(
                 f"Failed to submit report. Operation failed with code {response.status_code}. Reason: {response.text}")

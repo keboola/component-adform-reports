@@ -416,6 +416,7 @@
               "rtbTradingDeskFee",
               "rtbContextualTargetingCost",
               "rtbBrandSafetyCost",
+              "rtbThirdPartyVendorCost",
               "sales",
               "salesAll",
               "salesSpecs",
